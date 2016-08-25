@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 
 import java.net.URI;
@@ -49,23 +50,14 @@ public interface StateContext {
     void setPluginStatus(PluginStatus status);
 
     /**
-     * Sends an HTTP GET request.
+     * Sends an HTTP request.
      *
      * @param uri the URI to send the request to
+     * @param method the HTTP request method
      * @param headers request headers (or null for none)
      * @param context a request ID (used to correlate requests to async responses)
      */
-    void sendHttpGetRequest(URI uri, Map<String,String> headers, Object context);
-
-    /**
-     * Sends an HTTP PUT request.
-     *
-     * @param uri the URI to send the request to
-     * @param headers request headers (or null for none)
-     * @param data the body data
-     * @param context a request ID (used to correlate requests to async responses)
-     */
-    void sendHttpPutRequest(URI uri, Map<String, String> headers, byte[] data, Object context);
+    void sendHttpRequest(URI uri, HttpRequest.Method method, Map<String,String> headers, byte[] data, Object context);
 
     /**
      * Set a new plugin state.

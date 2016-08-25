@@ -8,11 +8,9 @@
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * The "configuration wait" state of the plugin. This means that the plugin does not have myQ cloud credentials
@@ -46,7 +44,7 @@ public class ConfigurationWaitState implements State {
     }
 
     @Override
-    public void onHttpResponse(StateContext ctx, int statusCode, List<Map.Entry<String, String>> headers, String response, Object reqCtx) {
+    public void onHttpResponse(StateContext ctx, HttpResponse response, Object reqCtx) {
 
     }
 

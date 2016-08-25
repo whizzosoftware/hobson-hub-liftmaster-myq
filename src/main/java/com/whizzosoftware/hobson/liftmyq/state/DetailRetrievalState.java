@@ -8,15 +8,16 @@
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
+import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 /**
  * The "detail retrieval state" of the plugin. This means that the plugin has a valid security token and must
@@ -34,7 +35,7 @@ class DetailRetrievalState implements State {
     @Override
     public void onRefresh(StateContext ctx) {
         try {
-            ctx.sendHttpGetRequest(new URI("https://myqexternal.myqdevice.com/api/UserDeviceDetails?appId=" + APP_ID + "&securityToken=" + ctx.getSecurityToken()), null, "detail");
+            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/api/UserDeviceDetails?appId=" + APP_ID + "&securityToken=" + ctx.getSecurityToken()), HttpRequest.Method.GET, null, null, "detail");
         } catch (Exception e) {
             logger.error("Error receiving device details", e);
             ctx.setPluginStatus(PluginStatus.failed("Unable to retrieve device details; see log file for details"));
@@ -47,18 +48,22 @@ class DetailRetrievalState implements State {
     }
 
     @Override
-    public void onHttpResponse(StateContext ctx, int statusCode, List<Map.Entry<String, String>> headers, String response, Object reqCtx) {
-        if ("detail".equals(reqCtx)) {
-            if (statusCode == 200) {
-                logger.trace("Received successful system details: {}", response);
-                JSONObject json = new JSONObject(new JSONTokener(response));
-                if (json.has("Devices")) {
-                    processDevices(ctx, json.getJSONArray("Devices"));
-                    ctx.setState(new RunningState());
+    public void onHttpResponse(StateContext ctx, HttpResponse response, Object reqCtx) {
+        try {
+            if ("detail".equals(reqCtx)) {
+                if (response.getStatusCode() == 200) {
+                    logger.trace("Received successful system details: {}", response);
+                    JSONObject json = new JSONObject(new JSONTokener(response.getBody()));
+                    if (json.has("Devices")) {
+                        processDevices(ctx, json.getJSONArray("Devices"));
+                        ctx.setState(new RunningState());
+                    }
+                } else {
+                    ctx.setPluginStatus(PluginStatus.failed("Unable to retrieve system details; got response " + response.getStatusCode()));
                 }
-            } else {
-                ctx.setPluginStatus(PluginStatus.failed("Unable to retrieve system details; got response " + statusCode));
             }
+        } catch (IOException e) {
+            logger.error("Error processing HTTP response", e);
         }
     }
 

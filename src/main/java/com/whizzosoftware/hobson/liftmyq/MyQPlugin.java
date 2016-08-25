@@ -10,6 +10,8 @@ package com.whizzosoftware.hobson.liftmyq;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.plugin.http.AbstractHttpClientPlugin;
+import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
+import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
@@ -21,6 +23,7 @@ import com.whizzosoftware.hobson.liftmyq.state.StateContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.URI;
 import java.util.*;
 
 /**
@@ -57,12 +60,12 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
     }
 
     @Override
-    protected void onHttpResponse(int statusCode, List<Map.Entry<String, String>> headers, String response, Object context) {
-        state.onHttpResponse(this, statusCode, headers, response, context);
+    public void onHttpResponse(HttpResponse response, Object context) {
+        state.onHttpResponse(this, response, context);
     }
 
     @Override
-    protected void onHttpRequestFailure(Throwable cause, Object context) {
+    public void onHttpRequestFailure(Throwable cause, Object context) {
         state.onHttpRequestFailure(this, cause, context);
     }
 
@@ -93,6 +96,11 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
     @Override
     public void setPluginStatus(PluginStatus status) {
         setStatus(status);
+    }
+
+    @Override
+    public void sendHttpRequest(URI uri, HttpRequest.Method method, Map<String, String> headers, byte[] data, Object context) {
+        sendHttpRequest(uri, method, headers, null, data, context);
     }
 
     @Override

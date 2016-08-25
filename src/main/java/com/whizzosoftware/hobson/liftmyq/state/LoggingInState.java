@@ -9,15 +9,16 @@ package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
+import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * The "logging in" state of the plugin. This means that there is no valid security token and the plugin must send a
@@ -38,7 +39,7 @@ class LoggingInState implements State {
         String password = ctx.getConfiguration().getStringPropertyValue("password");
         logger.debug("Performing login for user {}", username);
         try {
-            ctx.sendHttpGetRequest(new URI("https://myqexternal.myqdevice.com/Membership/ValidateUserWithCulture?appId=" + APP_ID + "&securityToken=null&username=" + username + "&password=" + password + "&culture=" + CULTURE), null, "login");
+            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/Membership/ValidateUserWithCulture?appId=" + APP_ID + "&securityToken=null&username=" + username + "&password=" + password + "&culture=" + CULTURE), HttpRequest.Method.GET, null, null, "login");
         } catch (URISyntaxException e) {
             throw new HobsonRuntimeException("Error sending login request", e);
         }
@@ -49,16 +50,20 @@ class LoggingInState implements State {
     }
 
     @Override
-    public void onHttpResponse(StateContext ctx, int statusCode, List<Map.Entry<String, String>> headers, String response, Object reqCtx) {
-        if ("login".equals(reqCtx)) {
-            if (statusCode == 200) {
-                logger.trace("Received successful login response: {}", response);
-                JSONObject json = new JSONObject(new JSONTokener(response));
-                ctx.setSecurityToken(json.getString("SecurityToken"));
-                ctx.setState(new DetailRetrievalState());
-            } else {
-                ctx.setPluginStatus(PluginStatus.failed("Unable to login; got response " + statusCode));
+    public void onHttpResponse(StateContext ctx, HttpResponse response, Object reqCtx) {
+        try {
+            if ("login".equals(reqCtx)) {
+                if (response.getStatusCode() == 200) {
+                    logger.trace("Received successful login response: {}", response);
+                    JSONObject json = new JSONObject(new JSONTokener(response.getBody()));
+                    ctx.setSecurityToken(json.getString("SecurityToken"));
+                    ctx.setState(new DetailRetrievalState());
+                } else {
+                    ctx.setPluginStatus(PluginStatus.failed("Unable to login; got response " + response.getStatusCode()));
+                }
             }
+        } catch (IOException e) {
+            logger.error("Error processing HTTP response", e);
         }
     }
 

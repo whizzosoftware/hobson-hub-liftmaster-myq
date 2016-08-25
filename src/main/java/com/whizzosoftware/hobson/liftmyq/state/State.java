@@ -7,8 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.liftmyq.state;
 
-import java.util.List;
-import java.util.Map;
+import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 
 /**
  * An interface for all callbacks and actions that can occur in any given plugin state.
@@ -38,12 +37,10 @@ public interface State {
      * Callback when an HTTP response success is received.
      *
      * @param ctx the context to use
-     * @param statusCode the HTTP response code
-     * @param headers the HTTP response headers
-     * @param response the HTTP response body
+     * @param response the HTTP response
      * @param reqCtx the request context ID
      */
-    void onHttpResponse(StateContext ctx, int statusCode, List<Map.Entry<String, String>> headers, String response, Object reqCtx);
+    void onHttpResponse(StateContext ctx, HttpResponse response, Object reqCtx);
 
     /**
      * Callback when the state should be refreshed.
