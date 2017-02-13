@@ -1,22 +1,20 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.liftmyq;
 
-import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.plugin.http.AbstractHttpClientPlugin;
 import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
 import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
-import com.whizzosoftware.hobson.api.variable.VariableContext;
-import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.liftmyq.state.ConfigurationWaitState;
 import com.whizzosoftware.hobson.liftmyq.state.State;
 import com.whizzosoftware.hobson.liftmyq.state.StateContext;
@@ -39,8 +37,8 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
     private String token;
     private List<String> deviceIds = new ArrayList<>();
 
-    public MyQPlugin(String pluginId) {
-        super(pluginId);
+    public MyQPlugin(String pluginId, String version, String description) {
+        super(pluginId, version, description);
         setState(new ConfigurationWaitState());
     }
 
@@ -70,7 +68,7 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
     }
 
     @Override
-    protected TypedProperty[] createSupportedProperties() {
+    protected TypedProperty[] getConfigurationPropertyTypes() {
         return new TypedProperty[] {
             new TypedProperty.Builder("username", "User name", "Your myQ account username", TypedProperty.Type.STRING).build(),
             new TypedProperty.Builder("password", "Password", "Your myQ account password", TypedProperty.Type.SECURE_STRING).build()
@@ -126,9 +124,9 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
 
     @Override
     public void publishGarageDoorOpener(String deviceId, String name, Boolean initialState) {
-        if (!hasDevice(DeviceContext.create(getContext(), deviceId))) {
+        if (!hasDeviceProxy(deviceId)) {
             logger.debug("Publishing garage door opener ({}) with name {} and initial state {}", deviceId, name, initialState);
-            publishDevice(new MyQGarageDoor(this, deviceId, name, initialState));
+            publishDeviceProxy(new MyQGarageDoor(this, deviceId, name, initialState));
             deviceIds.add(deviceId);
         }
     }
@@ -141,9 +139,8 @@ public class MyQPlugin extends AbstractHttpClientPlugin implements StateContext 
     @Override
     public void publishDeviceStateUpdate(String deviceId, Boolean state) {
         logger.trace("Publishing update for device {}: {}", deviceId, state);
-        DeviceContext dctx = DeviceContext.create(getContext(), deviceId);
-        setDeviceAvailability(dctx, true, System.currentTimeMillis());
-        fireVariableUpdateNotification(new VariableUpdate(VariableContext.create(dctx, VariableConstants.ON), state));
+        MyQGarageDoor device = (MyQGarageDoor)getDeviceProxy(deviceId);
+        device.onUpdateState(state);
     }
 
     void setDeviceState(String deviceId, Boolean b) {
