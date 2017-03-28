@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-liftmaster-myq</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.2</version>
     <packaging>bundle</packaging>
     <name>LiftMaster MyQ</name>
     <description>Provides the ability to control LiftMaster myQ garage door openers.</description>
@@ -144,7 +144,7 @@
     <scm>
         <connection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-liftmaster-myq.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-liftmaster-myq.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>hobson-hub-liftmaster-myq-0.0.2</tag>
     </scm>
     <repositories>
         <repository>
