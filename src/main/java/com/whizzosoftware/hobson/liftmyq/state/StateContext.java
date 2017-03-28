@@ -1,10 +1,12 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
@@ -55,6 +57,7 @@ public interface StateContext {
      * @param uri the URI to send the request to
      * @param method the HTTP request method
      * @param headers request headers (or null for none)
+     * @param data the body data
      * @param context a request ID (used to correlate requests to async responses)
      */
     void sendHttpRequest(URI uri, HttpRequest.Method method, Map<String,String> headers, byte[] data, Object context);
