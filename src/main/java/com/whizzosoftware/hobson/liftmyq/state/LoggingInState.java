@@ -1,16 +1,20 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
 import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
+import com.whizzosoftware.hobson.liftmyq.RequestUtil;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
@@ -19,6 +23,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * The "logging in" state of the plugin. This means that there is no valid security token and the plugin must send a
@@ -39,7 +45,8 @@ class LoggingInState implements State {
         String password = ctx.getConfiguration().getStringPropertyValue("password");
         logger.debug("Performing login for user {}", username);
         try {
-            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/Membership/ValidateUserWithCulture?appId=" + APP_ID + "&securityToken=null&username=" + username + "&password=" + password + "&culture=" + CULTURE), HttpRequest.Method.GET, null, null, "login");
+            String data = "{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}";
+            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/api/v4/User/Validate"), HttpRequest.Method.POST, RequestUtil.createHeaders(), data.getBytes(), "login");
         } catch (URISyntaxException e) {
             throw new HobsonRuntimeException("Error sending login request", e);
         }
@@ -54,10 +61,15 @@ class LoggingInState implements State {
         try {
             if ("login".equals(reqCtx)) {
                 if (response.getStatusCode() == 200) {
-                    logger.trace("Received successful login response: {}", response);
-                    JSONObject json = new JSONObject(new JSONTokener(response.getBody()));
-                    ctx.setSecurityToken(json.getString("SecurityToken"));
-                    ctx.setState(new DetailRetrievalState());
+                    String s = response.getBody();
+                    try {
+                        JSONObject json = new JSONObject(new JSONTokener(s));
+                        ctx.setSecurityToken(json.getString("SecurityToken"));
+                        logger.trace("Received security token: {}", ctx.getSecurityToken());
+                        ctx.setState(new DetailRetrievalState());
+                    } catch (JSONException e) {
+                        logger.error("Received malformed JSON response during login: " + s);
+                    }
                 } else {
                     ctx.setPluginStatus(PluginStatus.failed("Unable to login; got response " + response.getStatusCode()));
                 }

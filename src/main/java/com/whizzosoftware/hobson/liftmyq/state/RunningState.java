@@ -1,15 +1,20 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2016 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.liftmyq.state;
 
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.plugin.http.HttpRequest;
 import com.whizzosoftware.hobson.api.plugin.http.HttpResponse;
+import com.whizzosoftware.hobson.liftmyq.RequestUtil;
+import com.whizzosoftware.hobson.liftmyq.model.DeviceDetails;
+import com.whizzosoftware.hobson.liftmyq.model.DeviceDetailsResponse;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
@@ -17,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Collections;
+import java.util.Map;
 
 /**
  * Represents the "running" state of the plugin. This means the plugin has successfully logged into the myQ cloud
@@ -44,9 +49,9 @@ public class RunningState implements State {
         }
 
         try {
-            for (String deviceId : ctx.getDeviceIds()) {
-                ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/Device/getDeviceAttribute?appId=" + APP_ID + "&securityToken=" + ctx.getSecurityToken() + "&devId=" + deviceId + "&name=doorstate"), HttpRequest.Method.GET, null, null, "getState:" + deviceId);
-            }
+            Map<String,String> headers = RequestUtil.createHeaders();
+            headers.put("SecurityToken", ctx.getSecurityToken());
+            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/api/v4/UserDeviceDetails/Get"), HttpRequest.Method.GET, headers, null, "detail");
         } catch (Exception e) {
             logger.error("Error sending state request", e);
         }
@@ -62,18 +67,16 @@ public class RunningState implements State {
         try {
             String s = (String)reqCtx;
             String body = response.getBody();
-            if (s.startsWith("getState:") && response.getStatusCode() == 200) {
+            if ("detail".equals(s) && response.getStatusCode() == 200) {
                 logger.trace("Received successful device state update: {}", body);
                 JSONObject json = new JSONObject(new JSONTokener(body));
-                String deviceId = s.substring(9);
-                if (json.has("AttributeValue")) {
-                    String value = json.getString("AttributeValue");
-                    Boolean b = "1".equals(value) || "4".equals(value) || "5".equals(value) || "9".equals(value);
-                    logger.trace("Got response from {}: {}", deviceId, body);
-                    ctx.publishDeviceStateUpdate(deviceId, b);
-                } else if (json.has("ErrorMessage")) {
-                    logger.debug("Received error message; attempting to re-login");
-                    ctx.setState(new LoggingInState());
+                if (json.has("Devices")) {
+                    DeviceDetailsResponse ddr = new DeviceDetailsResponse(json.getJSONArray("Devices"));
+                    for (DeviceDetails dd : ddr.getDetails()) {
+                        if (dd.isActive()) {
+                            ctx.publishDeviceStateUpdate(dd.getId(), dd.getState());
+                        }
+                    }
                 }
             } else if ("setState".equals(s) && response.getStatusCode() == 200) {
                 logger.trace("Successfully made change state request: {}", body);
@@ -97,15 +100,15 @@ public class RunningState implements State {
     @Override
     public void setDeviceState(StateContext ctx, String deviceId, Boolean state) {
         try {
+            Map<String,String> headers = RequestUtil.createHeaders();
+            headers.put("SecurityToken", ctx.getSecurityToken());
             JSONObject body = new JSONObject();
             body.put("AttributeName", "desireddoorstate");
-            body.put("DeviceId", deviceId);
-            body.put("ApplicationId", APP_ID);
             body.put("AttributeValue", state ? "1" : "0");
-            body.put("SecurityToken", ctx.getSecurityToken());
+            body.put("MyQDeviceId", deviceId);
             String data = body.toString();
             logger.trace("Sending PUT: {}", data);
-            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/Device/setDeviceAttribute"), HttpRequest.Method.PUT, Collections.singletonMap("Content-Type", "application/json"), data.getBytes(), "setState");
+            ctx.sendHttpRequest(new URI("https://myqexternal.myqdevice.com/api/v4/DeviceAttribute/PutDeviceAttribute"), HttpRequest.Method.PUT, headers, data.getBytes(), "setState");
         } catch (Exception e) {
             logger.error("Error sending state change request", e);
         }

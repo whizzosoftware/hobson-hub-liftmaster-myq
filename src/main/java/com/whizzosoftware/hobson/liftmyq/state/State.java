@@ -18,7 +18,7 @@ public interface State {
     /**
      * The hard-coded application ID used in all API requests.
      */
-    String APP_ID = "Vj8pQggXLhLy0WHahglCD4N1nAkkXQtGYpq2HrHD7H1nvmbT55KqtN6RSF4ILB%2fi";
+    String APP_ID = "JVM/G9Nwih5BwKgNCjLxiFUQxQijAebyyg8QUHr7JOrP+tuPb8iHfRHKwTmDzHOu";
     /**
      * The hard-coded culture value used in all API requests.
      */
